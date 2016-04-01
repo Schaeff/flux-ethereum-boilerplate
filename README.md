@@ -19,7 +19,7 @@ Building the app involves gulp. If not already installed, run
 
 Then build running
 
-```gulp```
+```gulp ```
 
 Then, just serve ```ìndex.html``` using your favorite server. For example:
 
