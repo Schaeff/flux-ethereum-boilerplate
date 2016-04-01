@@ -1,0 +1,8 @@
+{
+	"node": {
+		"host": "localhost",
+		"port": 8545
+	},
+	"contracts": ["SimpleStorage", "OtherStorage"],
+	"build_dir": "contracts/build/"
+}

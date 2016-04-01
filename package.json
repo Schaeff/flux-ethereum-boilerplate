@@ -1,0 +1,31 @@
+{
+  "name": "flux-ethereum",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^2.0.0-rc.2",
+    "browserify": "^13.0.0",
+    "crypto": "0.0.3",
+    "ether-pudding": "^2.0.6",
+    "fluxxor": "^1.7.3",
+    "fs-extra": "^0.26.7",
+    "gulp": "^3.9.1",
+    "gulp-less": "^3.0.5",
+    "gulp-notify": "^2.2.0",
+    "gulp-smake": "^0.2.2",
+    "gulp-util": "^3.0.7",
+    "react": "^0.14.7",
+    "react-dom": "^0.14.7",
+    "reactify": "^1.1.1",
+    "solc": "^0.3.0-1",
+    "vinyl-source-stream": "^1.1.0",
+    "watchify": "^3.7.0",
+    "web3": "^0.15.3"
+  }
+}
