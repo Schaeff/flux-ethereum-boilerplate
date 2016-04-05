@@ -29,6 +29,10 @@ Then, just serve ```ìndex.html``` using your favorite server. For example:
 
 Go to ```localhost:8080``` 
 
+## Testing
+
+Run ```mocha```
+
 ## Support
 
 Please [open an issue](https://github.com/Schaeff/flux-ethereum-boilerplate/issues) for support.
