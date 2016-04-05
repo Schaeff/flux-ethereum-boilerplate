@@ -23,27 +23,17 @@ var buffer = require('vinyl-buffer'); // Vinyl stream support
 var watchify = require('watchify'); // Watchify for source changes
 var merge = require('utils-merge'); // Object merge tool
 var duration = require('gulp-duration'); // Time aspects of your gulp process
-
-var config = {
-  js: {
-    src: './app.jsx',
-    watch: './*',
-    outputDir: './dist/',
-    outputFile: 'bundle.js',
-  },
-  sol: {
-    src: './contracts/src',
-    outputDir: './contracts/build',
-  }
-};
+var config = require("./config.json")
 
 // This task builds contracts using the npm solc package  
 gulp.task('build-with-npm-solc', function(cb) {
+  // Read contracts src dir
   fs.readdir(config.sol.src, (err, files) => {
     if (err) return cb(err)
     gutil.log("Found contracts " + files.map((file) => (chalk.green(file))).join(', '))
+    // Select files that match with config
     async.map(
-      files,
+      files.filter((file) => (config.sol.contracts.indexOf(file) !== -1)),
       function(file, callback) {
         fs.readFile(config.sol.src + '/' + file, (err, data) => {
           if (err) return callback(err)
@@ -52,29 +42,39 @@ gulp.task('build-with-npm-solc', function(cb) {
       },
       function(err, results) {
         if (err) return cb(err)
+        // Format sources to match solc standards ({ filename : content })
         var inputs = {}
         results.forEach(function(result, index) {
           inputs[files[index]] = result
         })
+        // Compile with optimizer
         var output = solc.compile({sources: inputs}, 1)
+
+        // Write results to a single build file
         async.map(
+          // iterate on keys
           Object.keys(output.contracts),
           function(key, callback) {
-            fs.writeFile(
-              config.sol.outputDir + '/' + key + ".sol.js",
-              "module.exports = { abi: " + output.contracts[key].interface + ", bytecode: '" + output.contracts[key].bytecode + "'}",
-              function(err) {
-                if (err) return callback(err) 
-                callback(null, key)
-              })
+              var compiled = "module.exports."+ key +" = { abi: " + output.contracts[key].interface + ", bytecode: '" + output.contracts[key].bytecode + "'}";
+              callback(null, compiled)
           },
           function(err, res) {
             if (err) {
               gutil.log(chalk.red("Contracts compilation failed: " + err))
               return cb(err)
             }
-            gutil.log("Contracts compilation succeeded: " + res.map((file) => (chalk.green(file))).join(', '))
-            cb()
+
+            fs.writeFile(
+              config.sol.outputDir + "/bundle.sol.js",
+              res.join('\n'),
+              function(err, res) {
+                if(err) {
+                  gutil.log(chalk.red("Contracts write failed: " + err))
+                  return cb(err)
+                }
+                gutil.log("Contracts compilation succeeded")
+                cb()
+              })
           })
       })
   })

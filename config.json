@@ -3,6 +3,15 @@
 		"host": "localhost",
 		"port": 8545
 	},
-	"contracts": ["SimpleStorage", "OtherStorage"],
-	"build_dir": "contracts/build/"
+	"js": {
+		"src": "./app.jsx",
+		"watch": "./*",
+		"outputDir": "./dist/",
+		"outputFile": "bundle.js"
+	},
+	"sol": {
+		"contracts": ["SimpleStorage.sol", "OtherStorage.sol"],
+		"src": "./contracts/src",
+		"outputDir": "./contracts/build"
+	}
 }

@@ -3,7 +3,7 @@ var path = require('path')
 var Fluxxor = require('fluxxor')
 var EthApi = require('../lib/EthApi.js')
 var config = require('../config.json')
-var ethApi = new EthApi(config.node.host, config.node.port, config.contracts, config.build_dir)
+var ethApi = new EthApi(config.node.host, config.node.port, config.build_dir)
 window.ethApi = ethApi
 
 var actions = {	
