@@ -21,6 +21,8 @@ Then build running
 
 ```gulp ```
 
+Gulp will build contracts and styles once, then watch for changes to rebuild js.
+
 Then, just serve ```ìndex.html``` using your favorite server. For example:
 
 ```python -m SimpleHttpServer 8080```

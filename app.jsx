@@ -2,7 +2,7 @@ var Fluxxor = require("fluxxor")
 
 var StorageStore = require("./stores/StorageStore.jsx")
 
-var actions = require("./actions/Actions.jsx")
+var actions = require("./actions")
 
 var App = require("./views/App.jsx")
 var ReactDOM = require("react-dom")

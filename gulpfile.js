@@ -1,12 +1,9 @@
+'use strict';
+
 var source = require('vinyl-source-stream');
 var gulp = require('gulp');
 var gutil = require('gulp-util');
-var browserify = require('browserify');
-var reactify = require('reactify');
-var watchify = require('watchify');
-var notify = require("gulp-notify");
 var less = require('gulp-less');
-var gsm = require('gulp-smake');
 var solc = require('solc')
 var crypto = require('crypto');
 var os = require('os');
@@ -14,20 +11,41 @@ var fs = require('fs-extra');
 var path = require('path');
 var async = require('async');
 
-var solidityPaths = ['./contracts/src/*.sol']
-var solidityPath = './contracts/src'
-var contractsBuildPath = './contracts/build'
+var babelify = require('babelify'); // Used to convert ES6 & JSX to ES5
+var browserify = require('browserify'); // Providers "require" support, CommonJS
+var notify = require('gulp-notify'); // Provides notification to both the console and Growel
+var rename = require('gulp-rename'); // Rename sources
+var sourcemaps = require('gulp-sourcemaps'); // Provide external sourcemap files
+var livereload = require('gulp-livereload'); // Livereload support for the browser
+var chalk = require('chalk'); // Allows for coloring for logging
+var source = require('vinyl-source-stream'); // Vinyl stream support
+var buffer = require('vinyl-buffer'); // Vinyl stream support
+var watchify = require('watchify'); // Watchify for source changes
+var merge = require('utils-merge'); // Object merge tool
+var duration = require('gulp-duration'); // Time aspects of your gulp process
 
-var tmpDir = "./tmp"
+var config = {
+  js: {
+    src: './app.jsx',
+    watch: './*',
+    outputDir: './dist/',
+    outputFile: 'bundle.js',
+  },
+  sol: {
+    src: './contracts/src',
+    outputDir: './contracts/build',
+  }
+};
 
+// This task builds contracts using the npm solc package  
 gulp.task('build-with-npm-solc', function(cb) {
-  fs.readdir(solidityPath, (err, files) => {
+  fs.readdir(config.sol.src, (err, files) => {
     if (err) return cb(err)
-    console.log(files)
+    gutil.log("Found contracts " + files.map((file) => (chalk.green(file))).join(', '))
     async.map(
       files,
       function(file, callback) {
-        fs.readFile(solidityPath + '/' + file, (err, data) => {
+        fs.readFile(config.sol.src + '/' + file, (err, data) => {
           if (err) return callback(err)
           return callback(null, data.toString())
         })
@@ -39,79 +57,27 @@ gulp.task('build-with-npm-solc', function(cb) {
           inputs[files[index]] = result
         })
         var output = solc.compile({sources: inputs}, 1)
-        async.each(
+        async.map(
           Object.keys(output.contracts),
           function(key, callback) {
             fs.writeFile(
-              contractsBuildPath + '/' + key + ".sol.js",
+              config.sol.outputDir + '/' + key + ".sol.js",
               "module.exports = { abi: " + output.contracts[key].interface + ", bytecode: '" + output.contracts[key].bytecode + "'}",
               function(err) {
                 if (err) return callback(err) 
-                callback()
+                callback(null, key)
               })
           },
-          function(err) {
-            if (err) return cb(err)
+          function(err, res) {
+            if (err) {
+              gutil.log(chalk.red("Contracts compilation failed: " + err))
+              return cb(err)
+            }
+            gutil.log("Contracts compilation succeeded: " + res.map((file) => (chalk.green(file))).join(', '))
             cb()
           })
       })
-
-
-    // var output = solc.compile(data, 1)
-    // console.log(output)
-    // cb()
-
   })
-  // var input = "contract x { function g() {} }";
-  // var output = solc.compile(input, 1); // 1 activates the optimiser
-  // for (var contractName in output.contracts) {
-  //   // code and ABI that are needed by web3
-  //   console.log(contractName + ': ' + output.contracts[contractName].bytecode);
-  //   console.log(contractName + '; ' + JSON.parse( output.contracts[contractName].interface));
-  // }
-});
-
-gulp.task('build-contracts', function(cb) {
-    process.exec('./build_contracts.sh', function (error) {
-        if(error) return cb(error);
-    });
-});
-
-var scriptsDir = '.';
-var buildDir = './dist';
-
-
-function handleErrors() {
-  var args = Array.prototype.slice.call(arguments);
-  notify.onError({
-    title: "Compile Error",
-    message: "<%= error.message %>"
-  }).apply(this, args);
-  this.emit('end'); // Keep gulp from hanging on this task
-}
-
-
-// Based on: http://blog.avisi.nl/2014/04/25/how-to-keep-a-fast-build-with-browserify-and-reactjs/
-function buildScript(file, watch) {
-  var props = {entries: [scriptsDir + '/' + file], debug: true};
-  var bundler = watch ? watchify(props) : browserify(props);
-  bundler.transform(reactify);
-  function rebundle() {
-    var stream = bundler.bundle();
-    return stream.on('error', handleErrors)
-    .pipe(source('bundle.js'))
-    .pipe(gulp.dest(buildDir + '/'));
-  }
-  bundler.on('update', function() {
-    rebundle();
-    gutil.log('Rebundle...');
-  });
-  return rebundle();
-}
-
-
-gulp.task('build', function() {
-  return buildScript('app.jsx', false);
 });
 
 gulp.task('styles', function() {
@@ -120,7 +86,55 @@ gulp.task('styles', function() {
     .pipe(gulp.dest('dist'))
 });
 
+// Error reporting function
+function mapError(err) {
+  if (err.fileName) {
+    // Regular error
+    gutil.log(chalk.red(err.name)
+      + ': ' + chalk.yellow(err.fileName.replace(__dirname + '/src/js/', ''))
+      + ': ' + 'Line ' + chalk.magenta(err.lineNumber)
+      + ' & ' + 'Column ' + chalk.magenta(err.columnNumber || err.column)
+      + ': ' + chalk.blue(err.description));
+  } else {
+    // Browserify error..
+    gutil.log(chalk.red(err.name)
+      + ': '
+      + chalk.yellow(err.message));
+  }
+}
 
-gulp.task('default', ['build-with-npm-solc', 'styles'], function() {
-  return buildScript('app.jsx', false);
+// Completes the final file outputs
+function bundle(bundler) {
+  var bundleTimer = duration('Javascript bundle time');
+
+  bundler
+    .bundle()
+    .on('error', mapError) // Map error reporting
+    .pipe(source('app.jsx')) // Set source name
+    .pipe(buffer()) // Convert to gulp pipeline
+    .pipe(rename(config.js.outputFile)) // Rename the output file
+    .pipe(sourcemaps.init({loadMaps: true})) // Extract the inline sourcemaps
+    .pipe(sourcemaps.write('./map')) // Set folder for sourcemaps to output to
+    .pipe(gulp.dest(config.js.outputDir)) // Set the output folder
+    .pipe(notify({
+      message: 'Generated file: <%= file.relative %>',
+    })) // Output the file being created
+    .pipe(bundleTimer) // Output time timing of the file creation
+    .pipe(livereload()); // Reload the view in the browser
+}
+
+// Gulp task for build
+gulp.task('default',['build-with-npm-solc', 'styles'], function() {
+  livereload.listen(); // Start livereload server
+  var args = merge(watchify.args, { debug: true }); // Merge in default watchify args with browserify arguments
+
+  var bundler = browserify(config.js.src, args) // Browserify
+    .plugin(watchify, {ignoreWatch: ['**/node_modules/**', '**/bower_components/**']}) // Watchify to watch source file changes
+    .transform(babelify, {presets: ['es2015', 'react']}); // Babel tranforms
+
+  bundle(bundler); // Run the bundle the first time (required for Watchify to kick in)
+
+  bundler.on('update', function() {
+    bundle(bundler); // Re-run bundle on source updates
+  });
 });
