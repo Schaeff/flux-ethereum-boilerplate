@@ -2,9 +2,6 @@ var constants = require("../constants")
 var path = require('path')
 var Fluxxor = require('fluxxor')
 var EthApi = require('../lib/EthApi.js')
-var config = require('../config.json')
-var ethApi = new EthApi(config.node.host, config.node.port, config.sol.outputDir)
-window.ethApi = ethApi
 
 var actions = {	
 	storeValue(val) {
@@ -14,9 +11,9 @@ var actions = {
 		// Actual call
 		var address = this.flux.store("StorageStore").address
 
-		ethApi.contracts.SimpleStorage
+		EthApi.contracts.SimpleStorage
 			.at(address)
-			.set(val, {from: ethApi.web3.eth.coinbase})
+			.set(val, {from: EthApi.web3.eth.coinbase})
 			.bind(this)
 			.then(function(res) {
 				this.dispatch(constants.STORED_OK)
@@ -28,10 +25,10 @@ var actions = {
 
 	deployContract() {
 		var that = this
-		ethApi.contracts.SimpleStorage
-			.new({from: ethApi.web3.eth.coinbase})
+		EthApi.contracts.SimpleStorage
+			.new({from: EthApi.web3.eth.coinbase})
 			.then(function(instance) {
-				ethApi.contracts.SimpleStorage.at(instance.address)
+				EthApi.contracts.SimpleStorage.at(instance.address)
 					.newData()
 					.watch(function(err, val) {
 						that.dispatch(constants.NEW_VALUE, {value: Number(val.args.newData.toString())})
