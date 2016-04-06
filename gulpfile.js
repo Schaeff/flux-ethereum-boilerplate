@@ -50,6 +50,8 @@ gulp.task('build-with-npm-solc', function(cb) {
         // Compile with optimizer
         var output = solc.compile({sources: inputs}, 1)
 
+        if(output.errors) return cb(output.errors)
+
         // Write results to a single build file
         async.map(
           // iterate on keys
