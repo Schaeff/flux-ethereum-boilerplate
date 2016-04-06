@@ -2,9 +2,11 @@ var Fluxxor = require("fluxxor")
 var React = require('react')
 var StoragePanel = require("./StoragePanel.jsx")
 
+// Fluxxor provides tools to automaticatlly bind/unbind from change events coming from stores to avoid memory leak
 var FluxMixin = Fluxxor.FluxMixin(React),
 	StoreWatchMixin = Fluxxor.StoreWatchMixin
 
+// The root component of our app
 
 var Application = React.createClass({
 	mixins : [FluxMixin, StoreWatchMixin("StorageStore")],
@@ -13,6 +15,7 @@ var Application = React.createClass({
 		return {}
 	},
 
+	// Necessary for StoreWatchMixin to bind/unbind to store state
 	getStateFromFlux() {
 		var flux = this.getFlux();
 
@@ -29,21 +32,8 @@ var Application = React.createClass({
 	)
 	},
 
-	onClickRight() {
-		this.getFlux().actions.carousel.nextImage()
-	},
 
-	onClickLeft() {
-		this.getFlux().actions.carousel.previousImage()
-	},
-
-	onSelectImage(i) {
-		this.getFlux().actions.carousel.selectImage(i)
-	},
-
-	onAddUrl(url) {
-		this.getFlux().actions.carousel.addImage(url)
-	},
+	// Link to actions
 
 	onStore(value) {
 		this.getFlux().actions.storage.storeValue(value)
